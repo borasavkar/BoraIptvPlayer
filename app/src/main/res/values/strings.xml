@@ -1,0 +1,115 @@
+<resources>
+    <string name="app_name">Xtream AI Player</string>
+
+    <string name="title_live">Canlı</string>
+    <string name="title_movies">Filmler</string>
+    <string name="title_series">Diziler</string>
+
+    <string name="btn_profile">Profil</string>
+    <string name="btn_watch_now">HEMEN İZLE</string>
+    <string name="btn_trailer">FRAGMAN</string>
+    <string name="btn_back">Geri</string>
+    <string name="btn_save">Profili Kaydet</string>
+    <string name="btn_add_new">Yeni Ekle</string>
+    <string name="btn_manage">Yönet</string>
+    <string name="btn_edit">Düzenle</string>
+    <string name="btn_delete">Sil</string>
+    <string name="btn_cancel">İptal</string>
+    <string name="btn_yes">Evet</string>
+    <string name="btn_ok">Tamam</string>
+    <string name="btn_update">Profili Güncelle</string>
+
+    <string name="text_connected">Bağlandı</string>
+    <string name="status_connected">Bağlandı</string>
+    <string name="status_connecting">Bağlanıyor...</string>
+    <string name="status_not_connected">Bağlı Değil</string>
+    <string name="text_not_connected">Bağlı Değil</string>
+    <string name="status_login_error">Giriş Hatası</string>
+    <string name="text_login_error">Giriş Hatası</string>
+    <string name="status_server_error">Sunucu Yok</string>
+    <string name="text_server_error">Sunucu Yok</string>
+    <string name="status_no_profile">Profil Yok</string>
+    <string name="text_no_profile">Profil Yok</string>
+    <string name="status_unlimited">Süresiz</string>
+    <string name="status_expired">Süresi Dolmuş</string>
+
+    <string name="header_recommendations">Sizin İçin Seçtiklerimiz</string>
+    <string name="text_recent_channels">Son Eklenen Kanallar</string>
+    <string name="header_recent_channels">Son Eklenen Kanallar</string>
+    <string name="text_live_recommendations">Sizin İçin: Canlı Yayınlar</string>
+    <string name="header_live_recommendations">Sizin İçin: Canlı Yayınlar</string>
+    <string name="text_movie_recommendations">İlginizi Çekebilecek Filmler</string>
+    <string name="header_movie_recommendations">İlginizi Çekebilecek Filmler</string>
+    <string name="text_series_recommendations">Maratonluk Diziler</string>
+    <string name="header_series_recommendations">Maratonluk Diziler</string>
+    <string name="header_episodes">BÖLÜMLER</string>
+
+    <string name="label_plot">ÖZET</string>
+    <string name="label_cast">OYUNCULAR</string>
+    <string name="label_director">YÖNETMEN</string>
+    <string name="label_rating">IMDB:</string>
+
+    <string name="hint_search_category">Kategori Ara…</string>
+    <string name="hint_search_channel">Kanal Ara…</string>
+    <string name="hint_search_movie">Film Ara…</string>
+    <string name="hint_search_series">Dizi Ara…</string>
+
+    <string name="title_add_profile">Profil Ekle</string>
+    <string name="radio_xtream">Xtream Codes</string>
+    <string name="radio_m3u">M3U Playlist</string>
+    <string name="hint_profile_name">Profil Adı (Örn: Ev Sineması)</string>
+    <string name="hint_username">Kullanıcı Adı</string>
+    <string name="hint_password">Şifre</string>
+    <string name="hint_server_url">Sunucu URL (http://adres.com:port)</string>
+    <string name="hint_m3u_url">M3U Playlist URL</string>
+    <string name="msg_fill_fields">Lütfen alanları doldurun</string>
+    <string name="msg_profile_saved">Profil Kaydedildi!</string>
+
+    <string name="settings_title">Uygulama Ayarları</string>
+    <string name="settings_audio_lang">Ses Dili</string>
+    <string name="settings_subtitle_lang">Altyazı Dili</string>
+    <string name="settings_saved">Ayarlar kaydedildi</string>
+    <string name="settings_default_audio">Varsayılan Ses</string>
+    <string name="settings_default_subtitle">Varsayılan Altyazı</string>
+
+    <string name="error_title">⚠️ Hata</string>
+    <string name="error_server_message">Bu hata uygulamadan değil, yayın kaynağından kaynaklanmaktadır.</string>
+    <string name="error_no_internet">İnternet Yok</string>
+    <string name="error_timeout">Zaman Aşımı</string>
+    <string name="error_not_found">Kaynak Bulunamadı</string>
+    <string name="error_player_init">Başlatma Hatası</string>
+    <string name="msg_loading">Yükleniyor…</string>
+    <string name="msg_select_profile">Lütfen önce bir profil seçin</string>
+    <string name="msg_confirm_delete">Bu profili silmek istediğinize emin misiniz?</string>
+
+    <string name="desc_app_logo">Uygulama Logosu</string>
+    <string name="sub_settings">Altyazı Ayarları</string>
+    <string name="image_sound_settings">Görüntü ve Ses Ayarları</string>
+    <string name="btn_next_episode">Sonraki Bölüm ⏭</string>
+    <string name="btn_skip_intro">İntroyu Atla ⏩</string>
+    <string name="favorilerim">Favorilerim</string>
+    <string name="btn_add_favorites">Favorilere Ekle</string>
+    <string name="my_favorites">Favorilerim</string>
+    <string name="upcoming_matchs"><![CDATA[Yaklaşan Maçlar & Spor]]></string>
+    <string name="Recently_added_new_episodes">Son Eklenenler (Yeni Çıkanlar)</string>
+    <string name="img_logo_desc">Logo Tanımı</string>
+    <string name="btn_favorites_desc">Favoriler Düğmesi (kalp)</string>
+    <string name="btn_global_settings_desc">Ayarlar Düğmesi</string>
+    <string name="film_name">Film Adı</string>
+    <string name="channel_icon">Kanal Logos</string>
+    <string name="text_network_speed">0 KB/s</string>
+    <string name="desc_poster">Film Afişi</string>
+    <string name="sample_film_name">Örnek Film Adı</string>
+    <string name="network_speed">Bağlantı Hızı</string>
+    <string name="tv">TV</string>
+    <string name="film_header">Film Başlığı</string>
+    <string name="action">Aksiyon</string>
+    <string name="watch">⏵ İZLE</string>
+    <string name="fragman">FRAGMAN</string>
+    <string name="summary">ÖZET</string>
+    <string name="film_plot">Film konusu...</string>
+    <string name="cast">OYUNCULAR</string>
+    <string name="dash">-</string>
+    <string name="imdb">8.5 / 10</string>
+    <string name="search_subtitle_online">🌐 İnternette Altyazı Ara</string>
+</resources>
