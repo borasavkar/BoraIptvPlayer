@@ -5,13 +5,12 @@ import com.example.boraiptvplayer.network.LiveStream
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.BufferedReader
-import java.io.StringReader
 
 object M3UParser {
 
     private val client = OkHttpClient()
 
-    // M3U Linkini indirip kategorilere ve kanallara ayırır
+    // M3U Linkini indirip kategorilere ve kanallara ayırır (Optimize Edilmiş: Stream Okuma)
     fun parseM3U(url: String): Pair<List<LiveCategory>, List<LiveStream>> {
         try {
             val request = Request.Builder().url(url).build()
@@ -19,13 +18,15 @@ object M3UParser {
 
             if (!response.isSuccessful) return Pair(emptyList(), emptyList())
 
-            val content = response.body?.string() ?: return Pair(emptyList(), emptyList())
+            // YENİ: response.body?.string() yerine charStream kullanıyoruz.
+            // Bu, büyük listelerde hafızayı şişirmeden satır satır okumayı sağlar.
+            val body = response.body ?: return Pair(emptyList(), emptyList())
+            val reader = BufferedReader(body.charStream())
 
             val channels = mutableListOf<LiveStream>()
             val categories = mutableSetOf<String>()
             val categoryList = mutableListOf<LiveCategory>()
 
-            val reader = BufferedReader(StringReader(content))
             var line = reader.readLine()
 
             var currentName: String? = null
@@ -69,7 +70,6 @@ object M3UParser {
                             name = currentName,
                             streamIcon = currentLogo,
                             categoryId = currentGroup,
-                            // YENİ: Satırı (URL'yi) direkt buraya kaydediyoruz
                             directSource = line
                         )
                         channels.add(channel)
@@ -81,6 +81,8 @@ object M3UParser {
                 }
                 line = reader.readLine()
             }
+
+            reader.close() // Okuma bitince kapat
 
             // Kategorileri Listeye Çevir (Hepsi için ID = Kategori Adı)
             // "Tüm Kanallar" kategorisini en başa ekleyelim

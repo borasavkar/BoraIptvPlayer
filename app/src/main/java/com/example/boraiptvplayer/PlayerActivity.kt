@@ -3,8 +3,6 @@ package com.example.boraiptvplayer
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.net.TrafficStats
 import android.net.Uri
 import android.os.Bundle
@@ -16,7 +14,6 @@ import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
@@ -24,26 +21,23 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.TrackSelectionOverride
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
-import androidx.media3.datasource.okhttp.OkHttpDataSource // <-- YENİ GÜÇLÜ MOTOR
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.HlsMediaSource // <-- HLS Optimizasyonu
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import com.example.boraiptvplayer.database.AppDatabase
 import com.example.boraiptvplayer.database.Favorite
 import com.example.boraiptvplayer.database.Interaction
-import com.example.boraiptvplayer.network.RetrofitClient // <-- Paylaşılan Motor
+import com.example.boraiptvplayer.network.RetrofitClient
 import com.example.boraiptvplayer.utils.SettingsManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -206,44 +200,45 @@ class PlayerActivity : BaseActivity() {
                 trackSelector = DefaultTrackSelector(this)
                 applyGlobalSettings(trackSelector!!)
 
+                // --- TUNNELING OPTİMİZASYONU (YENİ) ---
+                // CPU yükünü azaltmak için Tunneling açıyoruz.
+                try {
+                    val parametersBuilder = trackSelector!!.buildUponParameters()
+                    parametersBuilder.setTunnelingEnabled(true)
+                    trackSelector!!.parameters = parametersBuilder.build()
+                } catch (e: Exception) {
+                    // Cihaz desteklemiyorsa pas geç
+                }
+
                 // --- 1. TURBO MOTOR: OkHttpDataSource ---
-                // Retrofit için hazırladığımız "Pool" (Havuz) destekli istemciyi burada da kullanıyoruz.
-                // Bu, bağlantı kurma süresini inanılmaz düşürür.
                 val okHttpDataSourceFactory = OkHttpDataSource.Factory(RetrofitClient.okHttpClient)
                     .setUserAgent("BoraIPTV/1.0 (Android; Mobile)")
 
                 val dataSourceFactory: DataSource.Factory = if (streamType != "live") {
-                    // VOD ise Cache kullan
                     setupCache(this, okHttpDataSourceFactory)
                 } else {
-                    // Canlı ise direkt OkHttp kullan
                     okHttpDataSourceFactory
                 }
 
-                // --- 2. RENDERER & TUNNELING (TV İÇİN KRİTİK) ---
+                // --- 2. RENDERER (YENİ) ---
                 val renderersFactory = DefaultRenderersFactory(this)
                     .setEnableDecoderFallback(true)
-                    .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON) // Donanım öncelikli, yazılım yedek
+                    .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER) // Donanım öncelikli
 
-                // --- 3. HIZLI BAŞLATMA (INSTANT PLAY) ---
+                // --- 3. HIZLI BAŞLATMA & BUFFER (YENİ - Agresif) ---
                 val loadControl = DefaultLoadControl.Builder()
                     .setBufferDurationsMs(
-                        3000,   // Min: 3sn (Hemen başla)
+                        1000,   // Min: 3sn yerine 1sn (Anında başla)
                         30000,  // Max: 30sn
-                        1000,   // Play: 1sn veri gelince oynat
-                        2000    // Rebuffer: 2sn
+                        500,    // Play: 0.5sn veri gelince oynat (Şimşek hızında)
+                        1000    // Rebuffer: Donarsa 1sn bekle
                     )
                     .setPrioritizeTimeOverSizeThresholds(true)
                     .build()
 
                 // --- 4. MEDYA KAYNAĞI OPTİMİZASYONU ---
-                // HLS (Canlı TV) için "Chunkless" modunu açıyoruz.
-                // Bu, listenin sonuna kadar taranmasını beklemeden ilk parçayı oynatır.
                 val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
-                    .setLiveTargetOffsetMs(5000) // Canlı yayına 5sn geriden gel (daha stabil olur)
-
-                // Eğer özel HLS ayarı gerekirse HlsMediaSource.Factory kullanılabilir ama
-                // DefaultMediaSourceFactory artık bunu otomatik yapıyor.
+                    .setLiveTargetOffsetMs(5000)
 
                 player = ExoPlayer.Builder(this, renderersFactory)
                     .setMediaSourceFactory(mediaSourceFactory)
@@ -259,15 +254,6 @@ class PlayerActivity : BaseActivity() {
                     .setDeviceVolumeControlEnabled(true)
                     .setHandleAudioBecomingNoisy(true)
                     .build()
-
-                // TUNNELING MODU (Sadece destekleyen cihazlarda - Genelde TV'ler)
-                // 4K videolarda CPU yükünü %50 azaltır.
-                /* Not: Tunneling modu bazen arayüz (altyazı, hız göstergesi) ile çakışabilir.
-                   Eğer hız göstergesi kaybolursa bu satırı yorum satırı yapabilirsin.
-                   Şimdilik kapalı tutuyorum çünkü TextureView/SurfaceView yönetimi gerektirir.
-                   Daha stabil olması için standart modda bırakıyoruz.
-                   // player?.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
-                */
 
                 playerView?.player = player
                 playerView?.keepScreenOn = true
@@ -307,10 +293,9 @@ class PlayerActivity : BaseActivity() {
         }
     }
 
-    // --- CACHE AYARI (OkHttp İle Güncellendi) ---
     private fun setupCache(context: Context, upstreamFactory: DataSource.Factory): DataSource.Factory {
         if (simpleCache == null) {
-            val evictor = LeastRecentlyUsedCacheEvictor(200 * 1024 * 1024) // 200MB Cache
+            val evictor = LeastRecentlyUsedCacheEvictor(200 * 1024 * 1024)
             val databaseProvider = StandaloneDatabaseProvider(context)
             simpleCache = SimpleCache(File(context.cacheDir, "media"), evictor, databaseProvider)
         }
@@ -319,10 +304,6 @@ class PlayerActivity : BaseActivity() {
             .setUpstreamDataSourceFactory(upstreamFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
     }
-
-    // ... (Geri kalan tüm fonksiyonlar AYNI) ...
-    // applyGlobalSettings, smartSelectSubtitle, updateNetworkSpeed, checkProgress vb.
-    // KOD BÜTÜNLÜĞÜ İÇİN AŞAĞIYA EKLİYORUM:
 
     private fun applyGlobalSettings(selector: DefaultTrackSelector) {
         val parametersBuilder = selector.buildUponParameters()

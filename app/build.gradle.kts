@@ -38,6 +38,7 @@ android {
 }
 
 dependencies {
+    implementation("com.squareup.okhttp3:okhttp-dnsoverhttps:4.12.0")
     // --- Varsayılan AndroidX Kütüphaneleri ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

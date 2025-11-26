@@ -16,6 +16,7 @@
             android:id="@+id/img_backdrop"
             android:layout_width="match_parent"
             android:layout_height="400dp"
+            android:contentDescription="@string/btn_back"
             android:scaleType="centerCrop"
             android:alpha="0.4"
             app:layout_constraintTop_toTopOf="parent"/>
@@ -25,7 +26,9 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_margin="16dp"
-            android:background="@drawable/bg_glass_3d"
+            android:background="@drawable/bg_liquid_selector"
+            android:focusable="true"
+            android:contentDescription="@string/btn_back"
             android:src="@android:drawable/ic_menu_revert"
             app:tint="@color/white"
             app:layout_constraintStart_toStartOf="parent"
@@ -45,6 +48,7 @@
                 android:id="@+id/img_poster"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:contentDescription="@string/img_poster"
                 android:scaleType="centerCrop"/>
         </androidx.cardview.widget.CardView>
 
@@ -54,7 +58,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:text="Film Başlığı"
+            android:text="@string/movie_header"
             android:textColor="@color/white"
             android:textSize="24sp"
             android:textStyle="bold"
@@ -75,15 +79,15 @@
             app:layout_constraintTop_toBottomOf="@id/text_title">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@android:drawable/star_big_on"
-                app:tint="#FFD700"/> <TextView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/star_big_on"
+            app:tint="#FFD700"/> <TextView
             android:id="@+id/text_rating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:text="8.5 / 10"
+            android:text="@string/imdb_rating"
             android:textColor="#FFD700"
             android:textStyle="bold"/>
         </LinearLayout>
@@ -93,7 +97,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Aksiyon, Macera"
+            android:text="@string/action_adventure"
             android:textColor="#BBDEFB"
             app:layout_constraintStart_toStartOf="@id/text_title"
             app:layout_constraintEnd_toEndOf="parent"
@@ -117,7 +121,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/btn_glass_play"
-                android:text="⏵ HEMEN İZLE"
+                android:text="@string/watch_now"
                 android:textColor="@color/white"
                 android:textSize="16sp"
                 android:textStyle="bold"/>
@@ -128,8 +132,9 @@
                 android:layout_height="55dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/bg_glass_3d"
-                android:text="FRAGMAN"
+                android:background="@drawable/bg_liquid_selector"
+                android:focusable="true"
+                android:text="@string/trailer"
                 android:textColor="@color/neon_blue"
                 android:textStyle="bold"
                 android:visibility="gone"/> </LinearLayout>
@@ -145,7 +150,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ÖZET"
+                android:text="@string/summary"
                 android:textColor="@color/neon_green"
                 android:textStyle="bold"
                 android:textSize="16sp"/>
@@ -155,7 +160,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Film konusu yükleniyor..."
+                android:text="@string/movie_plot_loading"
                 android:textColor="#DDDDDD"
                 android:lineSpacingExtra="4dp"/>
 
@@ -163,7 +168,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="OYUNCULAR"
+                android:text="@string/cast"
                 android:textColor="@color/neon_blue"
                 android:textStyle="bold"
                 android:textSize="16sp"/>
@@ -173,14 +178,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="-"
+                android:text="@string/dash"
                 android:textColor="@color/white"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="YÖNETMEN"
+                android:text="@string/director"
                 android:textColor="@color/neon_pink"
                 android:textStyle="bold"
                 android:textSize="16sp"/>
@@ -190,7 +195,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="-"
+                android:text="@string/minus"
                 android:textColor="@color/white"/>
 
         </LinearLayout>
@@ -207,7 +212,8 @@
             android:id="@+id/btn_favorite"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:background="@drawable/bg_glass_3d"
+            android:background="@drawable/bg_liquid_selector"
+            android:contentDescription="@string/btn_add_favorites"
             android:src="@drawable/ic_heart_outline"
             android:layout_marginEnd="16dp"
             app:layout_constraintEnd_toEndOf="parent"

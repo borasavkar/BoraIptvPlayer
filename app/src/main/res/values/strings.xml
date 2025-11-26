@@ -112,4 +112,18 @@
     <string name="dash">-</string>
     <string name="imdb">8.5 / 10</string>
     <string name="search_subtitle_online">🌐 İnternette Altyazı Ara</string>
+    <string name="img_poster">Poster</string>
+    <string name="movie_header">Film Başlığı</string>
+    <string name="imdb_rating">8.5 / 10</string>
+    <string name="action_adventure">Aksiyon, Macera</string>
+    <string name="watch_now">⏵ HEMEN İZLE</string>
+    <string name="trailer">FRAGMAN</string>
+    <string name="movie_plot_loading">Film konusu yükleniyor...</string>
+    <string name="director">YÖNETMEN</string>
+    <string name="minus">-</string>
+    <string name="line_vertical">|</string>
+    <string name="series_header">Dizi Başlığı</string>
+    <string name="imdb_8_5_action">IMDB: 8.5 | Aksiyon</string>
+    <string name="series_plot">Dizi konusu...</string>
+    <string name="series_plot_will_be_here">Dizi konusu buraya gelecek...</string>
 </resources>

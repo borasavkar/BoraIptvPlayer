@@ -97,34 +97,26 @@ class MainActivity : BaseActivity(), OnChannelClickListener {
         observeProfiles()
     }
 
-    // --- GÜNCELLENEN PROFİL TAKİP MANTIĞI ---
     private fun observeProfiles() {
         lifecycleScope.launch {
             profileDao.getAllProfiles().collectLatest { profiles ->
                 allProfiles = profiles
 
                 if (profiles.isEmpty()) {
-                    // 1. HİÇ PROFİL KALMADIYSA
                     activeProfile = null
-                    ContentCache.clear() // Hafızayı temizle
+                    ContentCache.clear()
                     clearBottomBar()
                     textStatusProfileName.setText(R.string.text_no_profile)
                     recyclerRecommendations.visibility = View.GONE
                     titleRecommendations.visibility = View.GONE
-                    createDemoProfileIfNeeded() // Demo oluştur
+                    createDemoProfileIfNeeded()
                 } else {
-                    // 2. LİSTEDE PROFİL VARSA
                     val savedId = SettingsManager.getSelectedProfileId(this@MainActivity)
-
-                    // Şu an seçili olan (hafızadaki) profil, güncel listede hala var mı?
                     val isSavedProfileValid = profiles.any { it.id == savedId }
 
                     if (!isSavedProfileValid) {
-                        // 3. SEÇİLİ PROFİL SİLİNMİŞ! -> Listedeki ilk profile geç
                         selectProfile(profiles[0])
                     } else {
-                        // 4. NORMAL DURUM: Seçili profil hala duruyor
-                        // Eğer şu an ekrandaki profil farklıysa (örn: yeni ekleme yapıldı) geçiş yap
                         if (activeProfile == null || activeProfile?.id != savedId) {
                             val targetProfile = profiles.find { it.id == savedId }
                             if (targetProfile != null) {
@@ -168,31 +160,23 @@ class MainActivity : BaseActivity(), OnChannelClickListener {
         }
     }
 
-    // --- SİLME İŞLEMİ GÜNCELLENDİ ---
     private fun deleteProfile(profile: Profile) {
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.btn_delete)) // "Sil"
-            .setMessage(getString(R.string.msg_confirm_delete)) // "Emin misiniz?"
-            .setPositiveButton(getString(R.string.btn_yes)) { _, _ -> // "Evet"
+            .setTitle(getString(R.string.btn_delete))
+            .setMessage(getString(R.string.msg_confirm_delete))
+            .setPositiveButton(getString(R.string.btn_yes)) { _, _ ->
                 lifecycleScope.launch {
-                    // 1. Eğer silinen profil şu an aktifse, önce temizlik yap
                     if (activeProfile?.id == profile.id) {
                         ContentCache.clear()
                         activeProfile = null
                         clearBottomBar()
                     }
-
-                    // 2. Profili sil
                     profileDao.deleteProfile(profile)
-
-                    // 3. (observeProfiles otomatik olarak tetiklenecek ve yeni profil seçecek)
                 }
             }
-            .setNegativeButton(getString(R.string.btn_cancel), null) // "İptal"
+            .setNegativeButton(getString(R.string.btn_cancel), null)
             .show()
     }
-
-    // ... (DİĞER TÜM FONKSİYONLAR AYNI - SADECE AŞAĞIYA KOPYALADIM) ...
 
     private fun initViews() {
         buttonAddProfile = findViewById(R.id.button_add_profile)
@@ -258,28 +242,18 @@ class MainActivity : BaseActivity(), OnChannelClickListener {
     }
 
     private fun setupDashboardCards() {
-        // 1. Başlıkları Ayarla
         cardTv.findViewById<TextView>(R.id.card_title).setText(R.string.title_live)
         cardFilms.findViewById<TextView>(R.id.card_title).setText(R.string.title_movies)
         cardSeries.findViewById<TextView>(R.id.card_title).setText(R.string.title_series)
 
-        // 2. İkonları Değişkenlere Ata (Senin aradığın yer burası)
-        // card_films içindeki resim kutusunu buluyoruz
         val iconTv = cardTv.findViewById<ImageView>(R.id.card_icon)
         val iconFilms = cardFilms.findViewById<ImageView>(R.id.card_icon)
         val iconSeries = cardSeries.findViewById<ImageView>(R.id.card_icon)
 
-        // 3. Yeni Neon İkonları Yerleştir
-        // Eğer ic_neon_live veya ic_neon_series dosyalarını oluşturmadıysan hata verir,
-        // onları da oluşturman gerekir.
         iconTv.setImageResource(R.drawable.ic_neon_live)
-
-        // İSTEDİĞİN DEĞİŞİKLİK: Film ikonu 'reel' oldu
         iconFilms.setImageResource(R.drawable.ic_neon_movie_reel)
-
         iconSeries.setImageResource(R.drawable.ic_neon_series)
 
-        // 4. ÖNEMLİ: Neon renklerin parlaması için eski renk kaplamasını kaldırıyoruz
         iconTv.imageTintList = null
         iconFilms.imageTintList = null
         iconSeries.imageTintList = null
@@ -336,13 +310,17 @@ class MainActivity : BaseActivity(), OnChannelClickListener {
     private fun observeFavorites() {
         lifecycleScope.launch {
             favoriteDao.getAllFavorites().collectLatest { favList ->
-                val safeFavList = favList.filter { isSafeContent(it.name) }
-                if (safeFavList.isNotEmpty()) {
-                    val mappedFavs = safeFavList.map { fav ->
+                // Favoriler az olduğu için main thread sorun olmaz ama yine de IO iyidir
+                val mappedFavs = withContext(Dispatchers.Default) {
+                    val safeFavList = favList.filter { isSafeContent(it.name) }
+                    safeFavList.map { fav ->
                         val stream = LiveStream(fav.streamId, fav.name, fav.image, fav.categoryId)
                         val typeLabel = when(fav.streamType) { "vod"->"Film"; "series"->"Dizi"; else->"TV" }
                         ChannelWithEpg(stream, EpgListing("0", "0", typeLabel, "", "", ""))
                     }
+                }
+
+                if (mappedFavs.isNotEmpty()) {
                     favAdapter.submitList(mappedFavs)
                     titleFavorites.visibility = View.VISIBLE
                     recyclerFavorites.visibility = View.VISIBLE
@@ -364,81 +342,129 @@ class MainActivity : BaseActivity(), OnChannelClickListener {
         }
     }
 
+    // --- KRİTİK OPTİMİZASYON BÖLGESİ ---
     private fun loadAllContent(profile: Profile) {
         progressBar.visibility = View.VISIBLE
 
         lifecycleScope.launch {
             try {
-                var channels: List<LiveStream>
-                var movies: List<VodStream>
-                var series: List<com.example.boraiptvplayer.network.SeriesStream>
-                val epgList: List<EpgListing>?
+                // 1. VERİ İNDİRME (IO Thread)
+                val (channels, movies, series, epgList) = withContext(Dispatchers.IO) {
+                    var ch: List<LiveStream>
+                    var mv: List<VodStream>
+                    var sr: List<com.example.boraiptvplayer.network.SeriesStream>
+                    var ep: List<EpgListing>?
 
-                // 1. ÖNCE HAFIZAYA BAK (Cache)
-                if (ContentCache.hasDataFor(profile.id)) {
-                    channels = ContentCache.cachedChannels
-                    movies = ContentCache.cachedMovies
-                    series = ContentCache.cachedSeries
-                    epgList = ContentCache.cachedEpg
-                } else {
-                    // İNTERNETTEN ÇEK
-                    if (profile.isM3u || profile.serverUrl == "local_demo") {
-                        if (profile.serverUrl == "local_demo") {
-                            channels = listOf(LiveStream(999, "Test Yayını (BBB)", "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg", "0", "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"))
-                        } else {
-                            val result = withContext(Dispatchers.IO) { M3UParser.parseM3U(profile.serverUrl) }
-                            channels = result.second
-                        }
-                        movies = emptyList()
-                        series = emptyList()
-                        epgList = null
+                    if (ContentCache.hasDataFor(profile.id)) {
+                        ch = ContentCache.cachedChannels
+                        mv = ContentCache.cachedMovies
+                        sr = ContentCache.cachedSeries
+                        ep = ContentCache.cachedEpg
                     } else {
-                        val apiService = RetrofitClient.createService(profile.serverUrl)
-                        val chDef = async { apiService.getLiveStreams(profile.username, profile.password) }
-                        val movDef = async { apiService.getVodStreams(profile.username, profile.password) }
-                        val serDef = async { apiService.getSeries(profile.username, profile.password) }
-                        val epgDef = async { apiService.getEpgTable(profile.username, profile.password) }
+                        if (profile.isM3u || profile.serverUrl == "local_demo") {
+                            if (profile.serverUrl == "local_demo") {
+                                ch = listOf(LiveStream(999, "Test Yayını (BBB)", "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg", "0", "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"))
+                            } else {
+                                val result = M3UParser.parseM3U(profile.serverUrl)
+                                ch = result.second
+                            }
+                            mv = emptyList()
+                            sr = emptyList()
+                            ep = null
+                        } else {
+                            val apiService = RetrofitClient.createService(profile.serverUrl)
+                            val chDef = async { apiService.getLiveStreams(profile.username, profile.password) }
+                            val movDef = async { apiService.getVodStreams(profile.username, profile.password) }
+                            val serDef = async { apiService.getSeries(profile.username, profile.password) }
+                            val epgDef = async { apiService.getEpgTable(profile.username, profile.password) }
 
-                        channels = chDef.await().body() ?: emptyList()
-                        movies = movDef.await().body() ?: emptyList()
-                        series = serDef.await().body() ?: emptyList()
-                        epgList = epgDef.await().body()?.listings
-                    }
-                    // Hafızaya Kaydet
-                    ContentCache.update(profile.id, channels, movies, series, epgList)
-                }
-
-                // FİLTRELEME
-                val safeChannels = channels.filter { isSafeContent(it.name) }
-                val safeMovies = movies.filter { isSafeContent(it.name) }
-                val safeSeries = series.filter { isSafeContent(it.name) }
-
-                // 2. YAKLAŞAN MAÇLAR (Akıllı)
-                val todayMatches = if (!epgList.isNullOrEmpty()) {
-                    val now = System.currentTimeMillis()
-                    val calendar = Calendar.getInstance()
-                    calendar.set(Calendar.HOUR_OF_DAY, 23)
-                    calendar.set(Calendar.MINUTE, 59)
-                    val endOfDay = calendar.timeInMillis
-
-                    safeChannels.mapNotNull { channel ->
-                        val channelEpgs = epgList.filter { it.epgId == channel.streamId.toString() }
-                        val matchEvent = channelEpgs.find { epg ->
-                            val start = parseEpgTime(epg.start) ?: 0L
-                            val end = parseEpgTime(epg.end) ?: 0L
-                            val isTimeValid = (end > now) && (start < endOfDay)
-                            if (!isTimeValid) return@find false
-                            val title = epg.title.lowercase(Locale.getDefault())
-                            val isMatch = title.contains(" vs ") || title.contains(" - ") || title.contains(" v ") || title.contains("karşılaşması") || title.contains("maçı")
-                            val isReplay = title.contains("özet") || title.contains("tekrar") || title.contains("highlight")
-                            isMatch && !isReplay
+                            ch = chDef.await().body() ?: emptyList()
+                            mv = movDef.await().body() ?: emptyList()
+                            sr = serDef.await().body() ?: emptyList()
+                            ep = epgDef.await().body()?.listings
                         }
-                        if (matchEvent != null) ChannelWithEpg(channel, matchEvent) else null
-                    }.take(20)
-                } else {
-                    emptyList()
+                        ContentCache.update(profile.id, ch, mv, sr, ep)
+                    }
+                    // Veriyi Paketle ve Döndür
+                    Quadruple(ch, mv, sr, ep)
                 }
 
+                // 2. AĞIR İŞLEME (DEFAULT Thread - CPU Yoğun İşler)
+                // UI'ı dondurmadan hesaplamaları burada yapıyoruz
+                val (todayMatches, latestItems, recommendedItems) = withContext(Dispatchers.Default) {
+
+                    val safeChannels = channels.filter { isSafeContent(it.name) }
+                    val safeMovies = movies.filter { isSafeContent(it.name) }
+                    val safeSeries = series.filter { isSafeContent(it.name) }
+
+                    // --- MAÇLAR ---
+                    val matches = if (!epgList.isNullOrEmpty()) {
+                        val now = System.currentTimeMillis()
+                        val calendar = Calendar.getInstance()
+                        calendar.set(Calendar.HOUR_OF_DAY, 23)
+                        calendar.set(Calendar.MINUTE, 59)
+                        val endOfDay = calendar.timeInMillis
+
+                        safeChannels.mapNotNull { channel ->
+                            val channelEpgs = epgList.filter { it.epgId == channel.streamId.toString() }
+                            val matchEvent = channelEpgs.find { epg ->
+                                val start = parseEpgTime(epg.start) ?: 0L
+                                val end = parseEpgTime(epg.end) ?: 0L
+                                val isTimeValid = (end > now) && (start < endOfDay)
+                                if (!isTimeValid) return@find false
+                                val title = epg.title.lowercase(Locale.getDefault())
+                                val isMatch = title.contains(" vs ") || title.contains(" - ") || title.contains(" v ") || title.contains("karşılaşması") || title.contains("maçı")
+                                val isReplay = title.contains("özet") || title.contains("tekrar") || title.contains("highlight")
+                                isMatch && !isReplay
+                            }
+                            if (matchEvent != null) ChannelWithEpg(channel, matchEvent) else null
+                        }.take(20)
+                    } else emptyList()
+
+                    // --- SON EKLENENLER ---
+                    val newMovies = safeMovies.sortedByDescending { it.streamId }.take(10)
+                    val newSeries = safeSeries.sortedByDescending { it.seriesId }.take(5)
+                    val latest = mutableListOf<ChannelWithEpg>()
+                    newMovies.forEach { m -> latest.add(ChannelWithEpg(LiveStream(m.streamId, m.name, m.streamIcon, m.categoryId), EpgListing("0","0","Film","","",""))) }
+                    newSeries.forEach { s -> val img = s.cover ?: s.streamIcon; latest.add(ChannelWithEpg(LiveStream(s.seriesId, s.name, img, s.categoryId), EpgListing("0","0","Dizi","","",""))) }
+
+                    // --- ÖNERİLER ---
+                    val recs = mutableListOf<ChannelWithEpg>()
+                    val totalWatchTime = interactionDao.getTotalUserWatchTime() ?: 0L
+
+                    if (totalWatchTime > 300) {
+                        val dominantType = interactionDao.getDominantStreamType()
+                        val topCategory = if (dominantType != null) interactionDao.getTopCategoryForType(dominantType) else emptyList()
+
+                        if (topCategory.isNotEmpty()) {
+                            val catId = topCategory[0].categoryId
+                            when(dominantType) {
+                                "vod" -> safeMovies.filter { it.categoryId == catId }.shuffled().take(15).forEach { m -> recs.add(ChannelWithEpg(LiveStream(m.streamId, m.name, m.streamIcon, m.categoryId), EpgListing("0","0","Film","","",""))) }
+                                "series" -> safeSeries.filter { it.categoryId == catId }.shuffled().take(15).forEach { s -> recs.add(ChannelWithEpg(LiveStream(s.seriesId, s.name, s.cover ?: s.streamIcon, s.categoryId), EpgListing("0","0","Dizi","","",""))) }
+                                else -> safeChannels.filter { it.categoryId == catId }.shuffled().take(15).forEach { c -> recs.add(ChannelWithEpg(c, null)) }
+                            }
+                        }
+                    }
+
+                    if (recs.isEmpty()) {
+                        if (safeChannels.isNotEmpty()) recs.addAll(safeChannels.shuffled().take(5).map { ChannelWithEpg(it, null) })
+                        if (safeMovies.isNotEmpty()) recs.addAll(safeMovies.shuffled().take(5).map { ChannelWithEpg(LiveStream(it.streamId, it.name, it.streamIcon, it.categoryId), EpgListing("0","0","Film","","","")) })
+                        if (safeSeries.isNotEmpty()) recs.addAll(safeSeries.shuffled().take(5).map { ChannelWithEpg(LiveStream(it.seriesId, it.name, it.cover ?: it.streamIcon, it.categoryId), EpgListing("0","0","Dizi","","","")) })
+                        recs.shuffle()
+                    }
+
+                    val finalRecs = if (recs.isNotEmpty()) {
+                        val combined = combineChannelsAndEpg(recs.map { it.channel }, epgList)
+                        combined.mapIndexed { index, item ->
+                            if (recs[index].epgNow?.title == "Film" || recs[index].epgNow?.title == "Dizi") item.copy(epgNow = recs[index].epgNow) else item
+                        }
+                    } else emptyList()
+
+                    Triple(matches, latest, finalRecs)
+                }
+
+                // 3. UI GÜNCELLEME (Main Thread)
+                // Hesaplanan verileri ekrana bas
                 if (todayMatches.isNotEmpty()) {
                     matchAdapter.submitList(todayMatches)
                     titleMatches.visibility = View.VISIBLE
@@ -447,13 +473,6 @@ class MainActivity : BaseActivity(), OnChannelClickListener {
                     titleMatches.visibility = View.GONE
                     recyclerMatches.visibility = View.GONE
                 }
-
-                // 3. SON ÇIKANLAR
-                val newMovies = safeMovies.sortedByDescending { it.streamId }.take(10)
-                val newSeries = safeSeries.sortedByDescending { it.seriesId }.take(5)
-                val latestItems = mutableListOf<ChannelWithEpg>()
-                newMovies.forEach { m -> latestItems.add(ChannelWithEpg(LiveStream(m.streamId, m.name, m.streamIcon, m.categoryId), EpgListing("0","0","Film","","",""))) }
-                newSeries.forEach { s -> val img = s.cover ?: s.streamIcon; latestItems.add(ChannelWithEpg(LiveStream(s.seriesId, s.name, img, s.categoryId), EpgListing("0","0","Dizi","","",""))) }
 
                 if (latestItems.isNotEmpty()) {
                     latestAdapter.submitList(latestItems)
@@ -464,45 +483,16 @@ class MainActivity : BaseActivity(), OnChannelClickListener {
                     recyclerLatest.visibility = View.GONE
                 }
 
-                // 4. ÖNERİLER
-                val totalWatchTime = withContext(Dispatchers.IO) { interactionDao.getTotalUserWatchTime() ?: 0L }
-                titleRecommendations.setText(R.string.header_recommendations)
-                val recommendedItems = mutableListOf<ChannelWithEpg>()
-
-                if (totalWatchTime > 300) {
-                    val dominantType = withContext(Dispatchers.IO) { interactionDao.getDominantStreamType() }
-                    val topCategory = if (dominantType != null) withContext(Dispatchers.IO) { interactionDao.getTopCategoryForType(dominantType) } else emptyList()
-
-                    if (topCategory.isNotEmpty()) {
-                        val catId = topCategory[0].categoryId
-                        when(dominantType) {
-                            "vod" -> safeMovies.filter { it.categoryId == catId }.shuffled().take(15).forEach { m -> recommendedItems.add(ChannelWithEpg(LiveStream(m.streamId, m.name, m.streamIcon, m.categoryId), EpgListing("0","0","Film","","",""))) }
-                            "series" -> safeSeries.filter { it.categoryId == catId }.shuffled().take(15).forEach { s -> recommendedItems.add(ChannelWithEpg(LiveStream(s.seriesId, s.name, s.cover ?: s.streamIcon, s.categoryId), EpgListing("0","0","Dizi","","",""))) }
-                            else -> safeChannels.filter { it.categoryId == catId }.shuffled().take(15).forEach { c -> recommendedItems.add(ChannelWithEpg(c, null)) }
-                        }
-                    }
-                }
-
-                if (recommendedItems.isEmpty()) {
-                    if (safeChannels.isNotEmpty()) recommendedItems.addAll(safeChannels.shuffled().take(5).map { ChannelWithEpg(it, null) })
-                    if (safeMovies.isNotEmpty()) recommendedItems.addAll(safeMovies.shuffled().take(5).map { ChannelWithEpg(LiveStream(it.streamId, it.name, it.streamIcon, it.categoryId), EpgListing("0","0","Film","","","")) })
-                    if (safeSeries.isNotEmpty()) recommendedItems.addAll(safeSeries.shuffled().take(5).map { ChannelWithEpg(LiveStream(it.seriesId, it.name, it.cover ?: it.streamIcon, it.categoryId), EpgListing("0","0","Dizi","","","")) })
-                    recommendedItems.shuffle()
-                }
-
                 if (recommendedItems.isNotEmpty()) {
-                    val finalRecs = combineChannelsAndEpg(recommendedItems.map { it.channel }, epgList)
-                    // Film/Dizi etiketlerini koru
-                    val correctedList = finalRecs.mapIndexed { index, item ->
-                        if (recommendedItems[index].epgNow?.title == "Film" || recommendedItems[index].epgNow?.title == "Dizi") item.copy(epgNow = recommendedItems[index].epgNow) else item
-                    }
-                    recAdapter.submitList(correctedList)
+                    titleRecommendations.setText(R.string.header_recommendations)
+                    recAdapter.submitList(recommendedItems)
                     titleRecommendations.visibility = View.VISIBLE
                     recyclerRecommendations.visibility = View.VISIBLE
                 } else {
                     titleRecommendations.visibility = View.GONE
                     recyclerRecommendations.visibility = View.GONE
                 }
+
                 progressBar.visibility = View.GONE
 
             } catch (e: Exception) {
@@ -511,6 +501,9 @@ class MainActivity : BaseActivity(), OnChannelClickListener {
             }
         }
     }
+
+    // Basit bir veri taşıyıcı (Quadruple standart kütüphanede yoktur, elle ekledik veya Pair/Triple kullanabiliriz ama bu daha temiz)
+    data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
     // --- YARDIMCI FONKSİYONLAR ---
     private fun isSafeContent(name: String?): Boolean {

@@ -10,6 +10,9 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.bumptech.glide.request.RequestOptions
 import com.example.boraiptvplayer.R
 import com.example.boraiptvplayer.network.ChannelWithEpg
 import java.util.Base64
@@ -44,34 +47,37 @@ class ChannelAdapter(
             // 1. İsim
             channelNameText.text = channel.name?.trim() ?: "İsimsiz"
 
-            // 2. RESİM AYARLARI (BURASI KRİTİK)
-            // EPG Başlığına bakarak türü anlıyoruz (MainActivity'de set etmiştik: Film, Dizi, TV)
+            // 2. RESİM OPTİMİZASYONU (Performans İçin Güncellendi)
             val type = channelWithEpg.epgNow?.title ?: "TV"
+            val isMovieOrSeries = (type == "Film" || type == "Dizi")
 
-            if (type == "Film" || type == "Dizi") {
-                // FİLM/DİZİ: Posteri tam doldur (Kesilirse kesilsin, doluluk önemli)
+            if (isMovieOrSeries) {
                 channelIcon.scaleType = ImageView.ScaleType.CENTER_CROP
-                channelIcon.setPadding(0, 0, 0, 0) // Boşluk yok
+                channelIcon.setPadding(0, 0, 0, 0)
             } else {
-                // CANLI TV: Logoyu sığdır (Asla kesilmesin)
                 channelIcon.scaleType = ImageView.ScaleType.FIT_CENTER
-                // Logolar kenara yapışmasın diye biraz iç boşluk verelim (16px)
                 val padding = 16
                 channelIcon.setPadding(padding, padding, padding, padding)
             }
 
-            // Glide ile Resmi Yükle
+            // GLIDE TURBO MODU:
+            // - override: Resmi küçülterek hafızayı rahatlatır (Scroll takılmasını önler)
+            // - diskCacheStrategy: Resmi diske kaydeder, tekrar indirme yapmaz
             Glide.with(itemView.context)
                 .load(channel.streamIcon)
+                .apply(RequestOptions()
+                    .override(300, 200) // Küçük boyutlara zorla (Hız için kritik)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL) // Hem orijinali hem küçüğü önbellekle
+                    .dontAnimate() // Animasyonları kapat (Daha seri yüklenir)
+                )
                 .placeholder(R.drawable.ic_launcher_foreground)
                 .error(android.R.drawable.ic_menu_gallery)
                 .into(channelIcon)
 
-            // 3. EPG Bilgisi
+            // 3. EPG Bilgisi (Base64 decode işlemi try-catch ile güvenli)
             if (epgNowText != null) {
                 val epg = channelWithEpg.epgNow
-                if (epg != null && (type != "Film" && type != "Dizi")) {
-                    // Sadece Canlı Yayınsa EPG göster, Filmse gösterme
+                if (epg != null && !isMovieOrSeries) {
                     val epgTitle = try {
                         val decodedBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             Base64.getDecoder().decode(epg.title)
